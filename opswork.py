@@ -66,7 +66,7 @@ def determineInstance():
             print('%s  avilable' % url)
 
 
-def cheakRun():
+def instanceStatus():
     ec2 = boto3.resource("ec2")
     instances = ec2.instances.filter()
     for instance in instances:
@@ -97,4 +97,4 @@ if __name__ == "__main__":
     terminatedInstance(ids)
     image_id = describeIimages()
     deregisterImage(image_id)
-    cheakRun()
+    instanceStatus()

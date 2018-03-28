@@ -36,6 +36,7 @@ class Color():
 
 
 def createTag(tag, image_id):
+    """ Create tag"""
     ec2 = boto3.resource("ec2")
     image = ec2.Image(image_id)
     tag = image.create_tags(Tags=[{'Key': 'Name', 'Value': tag}])
@@ -43,17 +44,20 @@ def createTag(tag, image_id):
 
 
 def createImage(id, tag):
+    """Create image"""
     today = now.strftime("%Y-%m-%d-%H:%M")
     image = ec2.create_image(Description=today, InstanceId=id, Name=tag)
     createTag(tag + today, image['ImageId'])
 
 
 def terminatedInstance(ids):
+    """ Create instance """
     response = ec2.terminate_instances(InstanceIds=ids)
     print(response)
 
 
 def cheakStatusInstances():
+    """Check  status instances if stopped run function createImage"""
     response = ec2.describe_instances(Filters=[{'Name': 'key-name', 'Values': ['key_name']}])
 
     ids = []
@@ -69,6 +73,7 @@ def cheakStatusInstances():
 
 
 def cheakPort():
+  """Check port for availability"""
   port = 80
   for target in targets:
     try:
@@ -85,7 +90,7 @@ def cheakPort():
 
 
 def determineInstance():
-    
+    """Check url for availability """
     for url in listUrl:
         try:
             request = urllib2.urlopen(url, timeout=1)
@@ -99,6 +104,7 @@ def determineInstance():
 
 
 def instanceStatus():
+    """ Check status instances """
     ec2 = boto3.resource("ec2")
     instances = ec2.instances.filter()
     for instance in instances:
@@ -110,6 +116,7 @@ def instanceStatus():
 
 
 def deregisterImage(image_id):
+    """ clear images"""
     if image_id:
         for id in image_id:
             response = ec2.deregister_image(ImageId=id)
@@ -117,6 +124,7 @@ def deregisterImage(image_id):
 
 
 def describeIimages():
+    """find images older then 7 days"""
     response = ec2.describe_images(Owners=['owner'])
     image_id = []
     for image in response['Images']:

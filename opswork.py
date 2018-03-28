@@ -23,6 +23,18 @@ ec2 = boto3.client('ec2')
 now = datetime.datetime.now()
 
 
+class Color():
+    """ We make color inference, for beauty. """
+    CYAN = '\033[36m'
+    PURPLE = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    ENDCOLOR = '\033[0m'
+
+
+
 def createTag(tag, image_id):
     ec2 = boto3.resource("ec2")
     image = ec2.Image(image_id)
@@ -62,7 +74,7 @@ def cheakPort():
     try:
         targetIP = gethostbyname(re.sub(r"http[s]?://", "", target))
     except gaierror as error:
-        print("%s in domain %s" % (error, target))
+        print("%s %s in domain %s %s" % (Color.RED, error, target, Color.ENDCOLOR))
     else:
         s = socket(AF_INET, SOCK_STREAM)
         result = s.connect_ex((targetIP, port)) 
@@ -79,7 +91,7 @@ def determineInstance():
             request = urllib2.urlopen(url, timeout=1)
         except urllib2.HTTPError as error:
             print(error)
-            print('url %s avilable but site not working good, maybe you dont have index file' % url)
+            print("%s url %s available but site not working good, maybe you don't have index file %s" % (Color.YELLOW, url, Color.ENDCOLOR))
         except urllib2.URLError as error:
             print(error)
         else:
@@ -90,7 +102,10 @@ def instanceStatus():
     ec2 = boto3.resource("ec2")
     instances = ec2.instances.filter()
     for instance in instances:
-        print(instance.id, instance.instance_type, instance.state)
+        if instance.state == "stoped":
+            print('%s %s %s %s %s' % (Color.RED, instance.id, instance.instance_type, instance.state, Color.ENDCOLOR))
+        else:
+           print('%s %s %s %s %s' % (Color.GREEN, instance.id, instance.instance_type, instance.state, Color.ENDCOLOR))
 
 
 

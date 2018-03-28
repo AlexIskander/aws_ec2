@@ -2,10 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import re
 import urllib2
 import datetime
 import boto3
 from botocore.exceptions import ClientError
+from socket import socket, gethostbyname, AF_INET, SOCK_STREAM, gaierror
+
 
 listId = ['i-id1',
           'i-id2',
@@ -53,13 +56,30 @@ def cheakStatusInstances():
     return ids
 
 
+def cheakPort():
+  port = 80
+  for target in targets:
+    try:
+        targetIP = gethostbyname(re.sub(r"http[s]?://", "", target))
+    except gaierror as error:
+        print("%s in domain %s" % (error, target))
+    else:
+        s = socket(AF_INET, SOCK_STREAM)
+        result = s.connect_ex((targetIP, port)) 
+        if not (result) :
+            print 'Port %d is open on %s' % (port, target)
+        s.close()
+
+
+
 def determineInstance():
+    
     for url in listUrl:
         try:
             request = urllib2.urlopen(url, timeout=1)
         except urllib2.HTTPError as error:
             print(error)
-            print('%s  avilable' % url)
+            print('url %s avilable but site not working good, maybe you dont have index file' % url)
         except urllib2.URLError as error:
             print(error)
         else:
@@ -70,7 +90,7 @@ def instanceStatus():
     ec2 = boto3.resource("ec2")
     instances = ec2.instances.filter()
     for instance in instances:
-        print(instance.id, instance.instance_type, instance.state, instance.)
+        print(instance.id, instance.instance_type, instance.state)
 
 
 
@@ -92,6 +112,7 @@ def describeIimages():
 
 
 if __name__ == "__main__":
+    cheakPort()
     determineInstance()
     ids =  cheakStatusInstances()
     terminatedInstance(ids)

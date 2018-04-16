@@ -72,7 +72,7 @@ def cheakStatusInstances():
     return ids
 
 
-def cheakPort():
+def cheakPort(targets):
   """Check port for availability"""
   port = 80
   for target in targets:
@@ -135,7 +135,7 @@ def describeIimages():
 
 
 if __name__ == "__main__":
-    cheakPort()
+    cheakPort(listUrl)
     determineInstance()
     ids =  cheakStatusInstances()
     terminatedInstance(ids)

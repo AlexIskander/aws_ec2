@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 from __future__ import print_function
 
 import re
@@ -23,16 +22,34 @@ EC2 = boto3.client('EC2')
 NOW = datetime.datetime.now()
 
 
-class Color():
-    """ We make color inference, for beauty. """
-    CYAN = '\033[36m'
-    PURPLE = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    ENDCOLOR = '\033[0m'
+class Color(object):
+    """ делаем цветной вывод, для красоты. """
 
+    def __init__(self, msg, color):
+        self._msg = msg
+        self._color = color
+
+    colors = {
+        "cyan": '\033[36m',
+        "purple": '\033[95m',
+        "blue": '\033[94m',
+        "green": '\033[92m',
+        "yellow": '\033[93m',
+        "red": '\033[91m',
+        "endcolor": '\033[0m'
+    }
+
+    def msg(self):
+        """msg"""
+        return self._msg
+
+    def color(self):
+        """color"""
+        return self.colors[self._color]
+
+    def __repr__(self):
+        return "%s %s %s" % (
+            self.color(), self.msg(), self.colors["endcolor"])
 
 
 def create_tag(tag, image_id):
@@ -43,10 +60,10 @@ def create_tag(tag, image_id):
     print(tag)
 
 
-def create_image(id, tag):
+def create_image(instance_id, tag):
     """Create image"""
     today = NOW.strftime("%Y-%m-%d-%H:%M")
-    image = EC2.create_image(Description=today, InstanceId=id, Name=tag)
+    image = EC2.create_image(Description=today, InstanceId=instance_id, Name=tag)
     create_tag(tag + today, image['ImageId'])
 
 
@@ -64,11 +81,12 @@ def cheak_status_instances():
 
     for instance in response['Reservations']:
         if instance['Instances'][0]['State']['Name'] == "stopped":
-            id = instance['Instances'][0]['InstanceId']
-            response_tag = EC2.describe_tags(Filters=[{'Name': 'resource-id', 'Values': [id]}])
+            instance_id = instance['Instances'][0]['InstanceId']
+            response_tag = EC2.describe_tags(Filters=[{'Name': 'resource-id',
+                                                       'Values': [instance_id]}])
             tag = response_tag['Tags'][0]['Value']
-            create_image(id, tag)
-            ids.append(id)
+            create_image(instance_id, tag)
+            ids.append(instance_id)
     return ids
 
 
@@ -78,15 +96,15 @@ def cheak_port(targets):
     for target in targets:
         try:
             target_ip = gethostbyname(re.sub(r"http[s]?://", "", target))
-        except gaierror as error:
-            print("%s %s in domain %s %s" % (Color.RED, error, target, Color.ENDCOLOR))
+        except gaierror as err:
+            msg = "{0} in domain {1}".format(err, target)
+            print(Color(msg, "red"))
         else:
             s = socket(AF_INET, SOCK_STREAM)
-            result = s.connect_ex((target_ip, port)) 
-            if not (result):
-                print( 'Port %d is open on %s' % (port, target))
+            result = s.connect_ex((target_ip, port))
+            if not result:
+                print("Port {0} is open on {1}".format(port, target))
             s.close()
-
 
 
 def determine_instance():
@@ -94,36 +112,37 @@ def determine_instance():
     for url in LIST_URL:
         try:
             request = urllib2.urlopen(url, timeout=1)
-        except urllib2.HTTPError as error:
-            print(error)
-            print("%s url %s available but site not working good, maybe you don't have index file %s" % (Color.YELLOW, url, Color.ENDCOLOR))
+        except urllib2.HTTPError as err:
+            print(err)
+            msg = "url {0} available but site not working good, maybe you don't have index file"
+            print(Color(msg.format(url), "yellow"))
         except urllib2.URLError as error:
-            print(error)
+            print(Color(error, "red"))
         else:
-            print('%s  avilable' % url)
 
+            print(Color("{0} avilable".format(url), "green"))
 
 def instance_status():
     """ Check status instances """
     EC2 = boto3.resource("EC2")
     instances = EC2.instances.filter()
     for instance in instances:
+        msg = "{0} {1} {2}".format(instance.id, instance.instance_type, instance.state)
         if instance.state == "stoped":
-            print('%s %s %s %s %s' % (Color.RED, instance.id, instance.instance_type, instance.state, Color.ENDCOLOR))
+            print(Color(msg, "red"))
         else:
-           print('%s %s %s %s %s' % (Color.GREEN, instance.id, instance.instance_type, instance.state, Color.ENDCOLOR))
-
+           print(Color(msg, "green"))
 
 
 def deregister_image(image_id):
     """ clear images"""
     if image_id:
-        for id in image_id:
-            response = EC2.deregister_image(ImageId=id)
+        for img_id in image_id:
+            response = EC2.deregister_image(ImageId=img_id)
             print(response)
 
 
-def describe_iimages():
+def describe_images():
     """find images older then 7 days"""
     response = EC2.describe_images(Owners=['owner'])
     image_id = []
@@ -137,8 +156,8 @@ def describe_iimages():
 if __name__ == "__main__":
     cheak_port(LIST_URL)
     determine_instance()
-    ids = cheak_status_instances()
-    terminated_instance(ids)
-    image_id = describe_iimages()
-    deregister_image(image_id)
-    instanceStatus()
+    IDS = cheak_status_instances()
+    terminated_instance(IDS)
+    IMAGE_ID = describe_images()
+    deregister_image(IMAGE_ID)
+    instance_status()

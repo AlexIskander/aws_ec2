@@ -7,21 +7,20 @@ import re
 import urllib2
 import datetime
 from socket import socket, gethostbyname, AF_INET, SOCK_STREAM, gaierror
-
 import boto3
 
 
-listId = ['i-id1',
-          'i-id2',
-          'i-id3']
+LIST_ID = ['i-id1',
+           'i-id2',
+           'i-id3']
 
-listUrl = ['http://a.devoups.tk',
-           'http://b.devoups.tk',
-           'http://c.devoups.tk']
+LIST_URL = ['http://a.devoups.tk',
+            'http://b.devoups.tk',
+            'http://c.devoups.tk']
 
 
-ec2 = boto3.client('ec2')
-now = datetime.datetime.now()
+EC2 = boto3.client('EC2')
+NOW = datetime.datetime.now()
 
 
 class Color():
@@ -36,63 +35,63 @@ class Color():
 
 
 
-def createTag(tag, image_id):
+def create_tag(tag, image_id):
     """ Create tag"""
-    ec2 = boto3.resource("ec2")
-    image = ec2.Image(image_id)
+    EC2 = boto3.resource("EC2")
+    image = EC2.Image(image_id)
     tag = image.create_tags(Tags=[{'Key': 'Name', 'Value': tag}])
     print(tag)
 
 
-def createImage(id, tag):
+def create_image(id, tag):
     """Create image"""
-    today = now.strftime("%Y-%m-%d-%H:%M")
-    image = ec2.create_image(Description=today, InstanceId=id, Name=tag)
-    createTag(tag + today, image['ImageId'])
+    today = NOW.strftime("%Y-%m-%d-%H:%M")
+    image = EC2.create_image(Description=today, InstanceId=id, Name=tag)
+    create_tag(tag + today, image['ImageId'])
 
 
-def terminatedInstance(ids):
+def terminated_instance(ids):
     """ Create instance """
-    response = ec2.terminate_instances(InstanceIds=ids)
+    response = EC2.terminate_instances(InstanceIds=ids)
     print(response)
 
 
-def cheakStatusInstances():
-    """Check  status instances if stopped run function createImage"""
-    response = ec2.describe_instances(Filters=[{'Name': 'key-name', 'Values': ['key_name']}])
+def cheak_status_instances():
+    """Check  status instances if stopped run function create_image"""
+    response = EC2.describe_instances(Filters=[{'Name': 'key-name', 'Values': ['key_name']}])
 
     ids = []
 
     for instance in response['Reservations']:
         if instance['Instances'][0]['State']['Name'] == "stopped":
             id = instance['Instances'][0]['InstanceId']
-            response_tag = ec2.describe_tags(Filters=[{'Name': 'resource-id', 'Values': [id]}])
+            response_tag = EC2.describe_tags(Filters=[{'Name': 'resource-id', 'Values': [id]}])
             tag = response_tag['Tags'][0]['Value']
-            createImage(id, tag)
+            create_image(id, tag)
             ids.append(id)
     return ids
 
 
-def cheakPort(targets):
+def cheak_port(targets):
     """Check port for availability"""
     port = 80
     for target in targets:
         try:
-            targetIP = gethostbyname(re.sub(r"http[s]?://", "", target))
+            target_ip = gethostbyname(re.sub(r"http[s]?://", "", target))
         except gaierror as error:
             print("%s %s in domain %s %s" % (Color.RED, error, target, Color.ENDCOLOR))
         else:
             s = socket(AF_INET, SOCK_STREAM)
-            result = s.connect_ex((targetIP, port)) 
-            if not (result) :
+            result = s.connect_ex((target_ip, port)) 
+            if not (result):
                 print( 'Port %d is open on %s' % (port, target))
             s.close()
 
 
 
-def determineInstance():
+def determine_instance():
     """Check url for availability """
-    for url in listUrl:
+    for url in LIST_URL:
         try:
             request = urllib2.urlopen(url, timeout=1)
         except urllib2.HTTPError as error:
@@ -104,10 +103,10 @@ def determineInstance():
             print('%s  avilable' % url)
 
 
-def instanceStatus():
+def instance_status():
     """ Check status instances """
-    ec2 = boto3.resource("ec2")
-    instances = ec2.instances.filter()
+    EC2 = boto3.resource("EC2")
+    instances = EC2.instances.filter()
     for instance in instances:
         if instance.state == "stoped":
             print('%s %s %s %s %s' % (Color.RED, instance.id, instance.instance_type, instance.state, Color.ENDCOLOR))
@@ -116,30 +115,30 @@ def instanceStatus():
 
 
 
-def deregisterImage(image_id):
+def deregister_image(image_id):
     """ clear images"""
     if image_id:
         for id in image_id:
-            response = ec2.deregister_image(ImageId=id)
+            response = EC2.deregister_image(ImageId=id)
             print(response)
 
 
-def describeIimages():
+def describe_iimages():
     """find images older then 7 days"""
-    response = ec2.describe_images(Owners=['owner'])
+    response = EC2.describe_images(Owners=['owner'])
     image_id = []
     for image in response['Images']:
-        createDate = image['CreationDate'].split('T')[0]
-        if createDate < '{:%Y-%m-}{}'.format(now, now.day - 7):
+        create_date = image['CreationDate'].split('T')[0]
+        if create_date < '{:%Y-%m-}{}'.format(NOW, NOW.day - 7):
             image_id.append(image['ImageId'])
     return image_id
 
 
 if __name__ == "__main__":
-    cheakPort(listUrl)
-    determineInstance()
-    ids =  cheakStatusInstances()
-    terminatedInstance(ids)
-    image_id = describeIimages()
-    deregisterImage(image_id)
+    cheak_port(LIST_URL)
+    determine_instance()
+    ids = cheak_status_instances()
+    terminated_instance(ids)
+    image_id = describe_iimages()
+    deregister_image(image_id)
     instanceStatus()

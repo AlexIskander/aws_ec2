@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+This script can help you manage AWS EC2
+Determine the instance state using its DNS name
+(need at least 2 verifications: TCP and HTTP).
+Create an AMI of the stopped EC2 instance and add a descriptive tag based
+on the EC2 name along with the current date.
+Terminate stopped EC2 after AMI creation.
+Clean up AMIs older than 7 days.
+Print all instances in fine-grained output, INCLUDING terminated one,
+with highlighting their current state.
+"""
 from __future__ import print_function
 
 import re
@@ -54,8 +65,8 @@ class Color(object):
 
 def create_tag(tag, image_id):
     """ Create tag"""
-    EC2 = boto3.resource("EC2")
-    image = EC2.Image(image_id)
+    aws_ec2 = boto3.resource("EC2")
+    image = aws_ec2 .Image(image_id)
     tag = image.create_tags(Tags=[{'Key': 'Name', 'Value': tag}])
     print(tag)
 
@@ -100,18 +111,18 @@ def cheak_port(targets):
             msg = "{0} in domain {1}".format(err, target)
             print(Color(msg, "red"))
         else:
-            s = socket(AF_INET, SOCK_STREAM)
-            result = s.connect_ex((target_ip, port))
+            sock = socket(AF_INET, SOCK_STREAM)
+            result = sock.connect_ex((target_ip, port))
             if not result:
                 print("Port {0} is open on {1}".format(port, target))
-            s.close()
+            sock.close()
 
 
 def determine_instance():
     """Check url for availability """
     for url in LIST_URL:
         try:
-            request = urllib2.urlopen(url, timeout=1)
+            urllib2.urlopen(url, timeout=1)
         except urllib2.HTTPError as err:
             print(err)
             msg = "url {0} available but site not working good, maybe you don't have index file"
@@ -122,16 +133,17 @@ def determine_instance():
 
             print(Color("{0} avilable".format(url), "green"))
 
+
 def instance_status():
     """ Check status instances """
-    EC2 = boto3.resource("EC2")
-    instances = EC2.instances.filter()
+    aws_ec2 = boto3.resource("EC2")
+    instances = aws_ec2.instances.filter()
     for instance in instances:
         msg = "{0} {1} {2}".format(instance.id, instance.instance_type, instance.state)
         if instance.state == "stoped":
             print(Color(msg, "red"))
         else:
-           print(Color(msg, "green"))
+            print(Color(msg, "green"))
 
 
 def deregister_image(image_id):

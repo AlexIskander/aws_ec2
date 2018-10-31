@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
+from __future__ import print_function
+
 import re
 import urllib2
 import datetime
-import boto3
-from botocore.exceptions import ClientError
 from socket import socket, gethostbyname, AF_INET, SOCK_STREAM, gaierror
+
+import boto3
 
 
 listId = ['i-id1',
@@ -73,19 +74,19 @@ def cheakStatusInstances():
 
 
 def cheakPort(targets):
-  """Check port for availability"""
-  port = 80
-  for target in targets:
-    try:
-        targetIP = gethostbyname(re.sub(r"http[s]?://", "", target))
-    except gaierror as error:
-        print("%s %s in domain %s %s" % (Color.RED, error, target, Color.ENDCOLOR))
-    else:
-        s = socket(AF_INET, SOCK_STREAM)
-        result = s.connect_ex((targetIP, port)) 
-        if not (result) :
-            print 'Port %d is open on %s' % (port, target)
-        s.close()
+    """Check port for availability"""
+    port = 80
+    for target in targets:
+        try:
+            targetIP = gethostbyname(re.sub(r"http[s]?://", "", target))
+        except gaierror as error:
+            print("%s %s in domain %s %s" % (Color.RED, error, target, Color.ENDCOLOR))
+        else:
+            s = socket(AF_INET, SOCK_STREAM)
+            result = s.connect_ex((targetIP, port)) 
+            if not (result) :
+                print( 'Port %d is open on %s' % (port, target))
+            s.close()
 
 
 

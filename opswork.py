@@ -16,7 +16,8 @@ from __future__ import print_function
 import re
 import urllib2
 import datetime
-from socket import socket, gethostbyname, AF_INET, SOCK_STREAM, gaierror
+import telnetlib
+import socket
 import boto3
 
 
@@ -104,18 +105,18 @@ def cheak_status_instances():
 def cheak_port(targets):
     """Check port for availability"""
     port = 80
+
     for target in targets:
+        if "http" in target:
+            target = re.sub(r"http[s]?://", "", target)
         try:
-            target_ip = gethostbyname(re.sub(r"http[s]?://", "", target))
-        except gaierror as err:
-            msg = "{0} in domain {1}".format(err, target)
-            print(Color(msg, "red"))
+            telnetlib.Telnet(target, 80, 5)
+        except socket.gaierror as err:
+            print(Color(err, "red"))
+        except socket.timeout as err:
+            print(Color(err, "red"))
         else:
-            sock = socket(AF_INET, SOCK_STREAM)
-            result = sock.connect_ex((target_ip, port))
-            if not result:
-                print("Port {0} is open on {1}".format(port, target))
-            sock.close()
+            print(Color("{0} port is avilable".format(port), "green"))
 
 
 def determine_instance():
@@ -127,10 +128,9 @@ def determine_instance():
             print(err)
             msg = "url {0} available but site not working good, maybe you don't have index file"
             print(Color(msg.format(url), "yellow"))
-        except urllib2.URLError as error:
-            print(Color(error, "red"))
+        except urllib2.URLError as err:
+            print(Color(err, "red"))
         else:
-
             print(Color("{0} avilable".format(url), "green"))
 
 
